@@ -1,4 +1,4 @@
-CREATE EXTERNAL TABLE IF NOT EXISTS noticia.periodico (
+CREATE EXTERNAL TABLE IF NOT EXISTS noticia.periodicos (
   `category` string,
   `headline` string,
   `link` string 

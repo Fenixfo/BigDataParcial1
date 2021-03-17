@@ -24,40 +24,71 @@ def lambda_handler(event, context):
     out = open(download_path,'w')
     out.writelines(lines)
     out.close()
+    
+    sendPersonalCSV=''
     ### Category
     categoryFile=''
-    for i in lines:
-        if 'category' in i:
-            
-            #print(i.split('category')[1])
-            if i.split('category')[1].split(' ')[0] != '':
-                categoryFile=i.split('category')[1].split(' ')[0]
-            else:
-                categoryFile=i.split('category')[1].split(' ')[1]
-            
-            
-            break
     ### Headline
     headLineFile=''
-    for i in lines:
-        if '<title>' in i:
-            headLineFile=i.split('<title>')[1].split('</title>')[0].replace(',',' ')
-            break
-    
     ### link
     linkFile=''
+    
+    ### link
+    linkFilePrincipal=''
+    ### Get principal link
     for i in lines:
         if 'canonical' in i:
             blockInfo=i.split(' ')
             for j in blockInfo:
                 if 'href="https://www' in j:
-                    linkFile=j.split('"')[1]
+                    linkFilePrincipal=j.split('"')[1]
                     break
             break
-        
+    
+    actualIndex=0
+    for i in lines:
+        if '<a class="category page-link' in i:
+            try:
+                theLine = i
+                ### Category
+                categoryFile = theLine.split('"')[1].split(' ')[2].replace(',',' ')
+                ### link
+                linkFile = lines[actualIndex+2].split('href="')[1].split('"')[0].replace(',',' ')
+                if not ('www.' in linkFile or 'http' in linkFile):
+                   linkFile = linkFilePrincipal + linkFile  
+                ### Headline
+                headLineFile = lines[actualIndex+2].split('</a>')[0].split('>')[-1].replace(',',' ')
+                ### CSV
+                sendPersonalCSV = sendPersonalCSV+'{}, {}, {} \n'.format(categoryFile,headLineFile,linkFile)
+                
+            except:
+                print('Error category')
+        actualIndex+=1
+                
+    for i in lines:
+        if '"category":[{' in i:
+            superLine = i.split('{"galery":')
+            for k in superLine:
+                try:
+                    theLine = k
+                    ### Category
+                    categoryFile = theLine.split('"slug":"')[1].split('"')[0].replace(',',' ')
+                    ### link
+                    linkFile = theLine.split('"link":"')[1].split('"')[0].replace(',',' ')
+                    if not 'www.' in linkFile:
+                        linkFile = linkFilePrincipal + linkFile  
+                    ### Headline
+                    headLineFile = theLine.split('"title":{"rendered":"')[1].split('"')[0].replace(',',' ')
+                    ### CSV
+                    sendPersonalCSV = sendPersonalCSV+'{}, {}, {} \n'.format(categoryFile,headLineFile,linkFile)
+                    
+                except:
+                    print('Error category')
+    
+    namePage = linkFilePrincipal.split('/')[2].split('.')[1]
     ### file modification
     archivo=open('/tmp/info.txt','w') 
-    archivo.write('category,headline,link\n{},{},{}'.format(categoryFile,headLineFile,linkFile))
+    archivo.write(''+sendPersonalCSV)
     archivo.close()
     ### Get actual day
     today = dt.datetime.today()
